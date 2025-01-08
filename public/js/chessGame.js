@@ -35,41 +35,81 @@ const renderBoard = () => {
             chessBoard.appendChild(squareElement); // Add square to the board
         });
     });
+
+
+    if(playRole ==='b'){
+        chessBoard.classList.add('flipped')
+    }else{
+        chessBoard.classList.remove('flipped')
+    }
 };
 
 
 
 
 
-const handleMove = () => { }
+const handleMove = (source,target) => { 
+    const move={
+        from:`${String.fromCharCode(97+source.col)}${8-source.row}`,
+        to:`${String.fromCharCode(97+target.col)}${8-target.row}`,
+        promotion:'q'
+    }
+  socket.emit('move',move); //for sending to backend
+console.log(move)
+}
 
 const getPieceUnicode = (piece) => {
-    if (!piece || !piece.color || !piece.type) return ''; // Handle invalid or empty squares
+    if (!piece || !piece.color || !piece.type) {
+        console.error('Invalid piece:', piece); // Debugging invalid pieces
+        return ''; // Handle invalid or empty squares
+    }
 
     const chessPiecesUnicode = {
-        white: {
-            king: '\u2654',    // ♔
-            queen: '\u2655',   // ♕
-            rook: '\u2656',    // ♖
-            bishop: '\u2657',  // ♗
-            knight: '\u2658',  // ♘
-            pawn: '\u2659'     // ♙
-        },
-        black: {
-            king: '\u265A',    // ♚
-            queen: '\u265B',   // ♛
-            rook: '\u265C',    // ♜
-            bishop: '\u265D',  // ♝
-            knight: '\u265E',  // ♞
-            pawn: '\u265F'     // ♟
-        }
+        k: '\u2654',    // ♔
+        q: '\u2655',   // ♕
+        r: '\u2656',    // ♖
+        b: '\u2657',  // ♗
+        n: '\u2658',  // ♘
+        p: '\u2659'     // ♙
     };
+   
+    // n: '\u2658', // Knight
+    
 
-    return chessPiecesUnicode[piece.color][piece.type] || '';
+    // Check if the piece type exists in the mapping
+    if (!chessPiecesUnicode[piece.type]) {
+        console.error(`Unknown piece type: ${piece.type}`);
+        return ''; // Return empty string for unknown types
+    }
+
+    // Calculate Unicode for black pieces by adding 6 to the white piece's Unicode
+    const unicodeOffset = piece.color === 'b' ? 6 : 0;
+    return String.fromCharCode(chessPiecesUnicode[piece.type].charCodeAt(0) + unicodeOffset);
 };
 
 
+//SEND to backend the all Front-End Part will be done Now....
+socket.on('playerRole',(role)=>{
+    playRole=role
+    renderBoard();
+})
+socket.on('spectatorRole',(role)=>{
+    playRole=null
+    renderBoard();
+})
 
 
+socket.on('move', (m) => {
+    console.log('Move received:', m);
+    // Update the board with the move
+    chess.move(m); // Update the chess instance
+    renderBoard(); // Re-render the board
+});
+
+socket.on('boardState', (fen) => {
+    console.log('Board state received:', fen);
+    chess.load(fen); // Load the new state into the chess instance
+    renderBoard(); // Re-render the board
+});
 
 renderBoard()
